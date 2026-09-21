@@ -1,0 +1,41 @@
+# Configuracion del controlador 
+
+# Todos los valores de params son hipotesis para experimentar
+aws:
+  region: us-east-1
+  auto_scaling_group: app-asg
+  target_group_arn: "arn:aws:elasticloadbalancing:us-east-1:620031050250:targetgroup/app-tg20260920225732489600000001/5f58004a25dcf64f"
+  load_balancer_dimension: "app/app-alb/a88197ad6defb024"
+  target_group_dimension: "targetgroup/app-tg20260920225732489600000001/5f58004a25dcf64f"
+  api_max_attempts: 3            
+
+state_path: /var/lib/autoscaling-controller/state.json
+decision_log_path: /var/log/autoscaling-controller/decisions.jsonl
+experiment_id: manual
+
+params:
+  # Frecuencia y observacion 
+  loop_interval_seconds: 30     
+  aggregation_period_seconds: 60 
+  n_samples: 4                   
+  observation_window_seconds: 360
+  expected_publish_lag_seconds: 90   
+
+  # banda muerta y evidencia calibradas segun carga real 
+  # Regla anti-oscilacion u_low < u_high * 1/2 
+  u_high: 20.0
+  u_low: 8.0
+  k_up: 3                        # subir 3 de 4 muestras > u_high
+  k_down: 4                      # bajar 4 de 4 muestras < u_low (mas evidencia que subir)
+
+  # estabilidad temporal 
+  cooldown_seconds: 300
+
+  # limites y paso
+  step: 1
+  min_capacity: 1                # requisito taller
+  max_capacity: 5                # requisito taller
+
+  # calidad de datos y seguridad al reducir
+  metric_freshness_seconds: 180  
+  reduce_max_p90_seconds: 0.6    
