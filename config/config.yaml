@@ -4,9 +4,12 @@
 aws:
   region: us-east-1
   auto_scaling_group: app-asg
-  target_group_arn: "arn:aws:elasticloadbalancing:us-east-1:620031050250:targetgroup/app-tg20260920225732489600000001/5f58004a25dcf64f"
-  load_balancer_dimension: "app/app-alb/a88197ad6defb024"
-  target_group_dimension: "targetgroup/app-tg20260920225732489600000001/5f58004a25dcf64f"
+  # Obtener de la consola de EC2 - Target Groups - Target Group details - ARN
+  target_group_arn: "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/app-tg/0000000000000000"
+  # Sufijo  (esta al final del ARN del ALB)
+  load_balancer_dimension: "app/app-alb/0000000000000000"
+  # Sufijo (esta al final del ARN del TG)
+  target_group_dimension: "targetgroup/app-tg/0000000000000000"
   api_max_attempts: 3            
 
 state_path: /var/lib/autoscaling-controller/state.json
