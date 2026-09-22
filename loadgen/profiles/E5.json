@@ -1,0 +1,13 @@
+{
+  "id": "E5",
+  "description": "Demanda transitoria",
+  "duration_seconds": 600,
+  "points": [
+    { "t": 0,   "rps": 90 },
+    { "t": 239, "rps": 90 },
+    { "t": 240, "rps": 550, "step": true },
+    { "t": 359, "rps": 550 },
+    { "t": 360, "rps": 90,  "step": true },
+    { "t": 600, "rps": 90 }
+  ]
+}

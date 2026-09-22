@@ -1,0 +1,55 @@
+# Configuracion del controlador de auto-escalado horizontal
+#
+# Todos los valores de "params" son HIPOTESIS para experimentar, no estandares.
+# Cambiar este archivo cambia su hash, y el hash queda en cada decision.
+
+aws:
+  region: us-east-1
+  auto_scaling_group: app-asg
+  # Obtener de la consola de EC2 -> Target Groups -> Target Group details -> ARN
+  target_group_arn: "arn:aws:elasticloadbalancing:us-east-1:620031050250:targetgroup/app-tg20260921030055885800000001/fd5d1fcf5ed5a858"
+  # Sufijo del ALB: ej. app/app-alb/a88197ad6defb024 (esta al final del ARN del ALB)
+  load_balancer_dimension: "app/app-alb/8675e03f837d5dfe"
+  # Sufijo del Target Group: ej. targetgroup/app-tg/5f58004a25dcf64f (esta al final del ARN del TG)
+  target_group_dimension: "targetgroup/app-tg20260921030055885800000001/fd5d1fcf5ed5a858"
+  api_max_attempts: 3            # reintentos del SDK ante fallos de AWS
+
+state_path: /var/lib/autoscaling-controller/state.json
+decision_log_path: /var/log/autoscaling-controller/decisions.jsonl
+experiment_id: E7-run01
+
+params:
+  # --- cadencia y observacion ---
+  loop_interval_seconds: 30      # menor que el periodo de agregacion
+  aggregation_period_seconds: 60 # requiere monitoreo detallado (1 min) en el Launch Template
+  n_samples: 4                   # ultimas 4 muestras de 60 s = 4 min de evidencia
+  # Regla (la valida el programa): ventana >= n_samples*periodo + retardo de publicacion
+  observation_window_seconds: 360
+  expected_publish_lag_seconds: 90   # HIPOTESIS: medir con metrics.*.age_seconds en AWS real
+
+  # --- banda muerta y evidencia calibradas segun carga real ---
+  # Regla anti-oscilacion: u_low < u_high * 1/2 = 10.0
+  u_high: 20.0
+  u_low: 8.0
+  k_up: 3                        # subir: 3 de 4 muestras > u_high (rechaza picos de 2 min)
+  k_down: 4                      # bajar: 4 de 4 muestras < u_low (mas evidencia que subir)
+
+  # --- estabilidad temporal ---
+  # HIPOTESIS: debe cubrir arranque de la instancia + varias muestras nuevas.
+  # Calibrar con la medicion de E2 (tiempo entre sobrecarga y capacidad util).
+  cooldown_seconds: 45
+
+  # --- limites y paso ---
+  step: 1
+  min_capacity: 1                # REQ del taller
+  max_capacity: 5                # REQ del taller
+
+  # --- calidad de datos y seguridad al reducir ---
+  metric_freshness_seconds: 180  # dato mas viejo que esto = datos insuficientes
+  reduce_max_p90_seconds: 0.6    # no reducir si la latencia p90 ya supera 0.6 s (SLO 0.8 s)
+
+  # --- disponibilidad: escalar por errores 5xx aunque el CPU este tranquilo ---
+  # El ThreadingHTTPServer de Python tiene backlog=5: puede rechazar conexiones
+  # antes de saturar la CPU. Si la tasa de errores 5xx supera este umbral
+  # se fuerza un scale-up. 0 = desactivado.
+  error_rate_scale_up_pct: 5.0  # escalar si >5% de peticiones retornan 5xx

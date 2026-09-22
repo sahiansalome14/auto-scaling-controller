@@ -1,0 +1,11 @@
+{
+  "id": "E4",
+  "description": "Disminucion progresiva",
+  "duration_seconds": 720,
+  "points": [
+    { "t": 0,   "rps": 500 },
+    { "t": 120, "rps": 500 },
+    { "t": 540, "rps": 30 },
+    { "t": 720, "rps": 30 }
+  ]
+}

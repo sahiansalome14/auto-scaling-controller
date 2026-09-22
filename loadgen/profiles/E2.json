@@ -1,0 +1,11 @@
+{
+  "id": "E2",
+  "description": "Incremento progresivo",
+  "duration_seconds": 720,
+  "points": [
+    { "t": 0,   "rps": 40 },
+    { "t": 120, "rps": 40 },
+    { "t": 540, "rps": 500 },
+    { "t": 720, "rps": 500 }
+  ]
+}
