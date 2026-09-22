@@ -1,4 +1,4 @@
-#Auto-scaling-controller
+# Auto-scaling-controller
 
 
 Lazo de control realimentado que observa una aplicación web en AWS a través de
