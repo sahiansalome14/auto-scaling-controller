@@ -1,6 +1,5 @@
-# auto-scaling-controller
+#Auto-scaling-controller
 
-# Controlador de elasticidad horizontal — CBL No. 1
 
 Lazo de control realimentado que observa una aplicación web en AWS a través de
 CloudWatch y decide cada 30 s entre `MAINTAIN_CAPACITY`, `INCREASE_CAPACITY` y
