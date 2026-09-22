@@ -98,7 +98,7 @@ func main() {
 	}
 }
 
-// ejecuta un ciclo completo observar - decidir -registrar - actuar
+// ejecuta un ciclo completo observar - decidir -registrar - actuar.
 func runCycle(ctx context.Context, cfg *Config, clients *Clients, dry bool) *Record {
 	now := time.Now().UTC()
 	cycle++
@@ -164,8 +164,8 @@ func runCycle(ctx context.Context, cfg *Config, clients *Clients, dry bool) *Rec
 	rec.Result.LatencyMS = time.Since(start).Milliseconds()
 
 	if actErr != nil {
-		// La accion fallo: no se actualiza lastActionAt, asi que el siguiente
-		// ciclo (en 30 s) reevaluara con datos frescos sin cooldown ficticio.
+		// La accion fallo no se actualiza lastActionAt, asi que el siguiente
+		// ciclo (en 30 s) reevaluara con datos frescos sin cooldown ficticio
 		rec.Result.Status = "FAILED"
 		rec.Result.Error = actErr.Error()
 	} else {
@@ -176,7 +176,7 @@ func runCycle(ctx context.Context, cfg *Config, clients *Clients, dry bool) *Rec
 	return rec
 }
 
-// escribe un registro en el archivo JSONL 
+// writeLog escribe un registro en el archivo JSONL (una linea = un ciclo).
 func writeLog(rec *Record) {
 	if err := json.NewEncoder(logFile).Encode(rec); err != nil {
 		log.Printf("no se pudo registrar el ciclo %d: %v", rec.Cycle, err)

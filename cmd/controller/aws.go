@@ -71,6 +71,7 @@ func fetchMetrics(ctx context.Context, clients *Clients, cfg *Config, start, end
 				map[string]string{"AutoScalingGroupName": a.AutoScalingGroup}),
 			makeQuery("lat", "AWS/ApplicationELB", "TargetResponseTime", "p90", tg),
 			makeQuery("rpt", "AWS/ApplicationELB", "RequestCountPerTarget", "Sum", tg),
+			makeQuery("e5x", "AWS/ApplicationELB", "HTTPCode_ELB_5XX_Count", "Sum", map[string]string{"LoadBalancer": a.LoadBalancerDim}),
 		},
 	})
 	if err != nil {
@@ -81,6 +82,7 @@ func fetchMetrics(ctx context.Context, clients *Clients, cfg *Config, start, end
 		"cpu": {MetricCPU, "AWS/EC2 CPUUtilization (AutoScalingGroupName)"},
 		"lat": {MetricLatencyP90, "AWS/ApplicationELB TargetResponseTime p90"},
 		"rpt": {MetricRPT, "AWS/ApplicationELB RequestCountPerTarget"},
+		"e5x": {MetricHTTP5xx, "AWS/ApplicationELB HTTPCode_Target_5XX_Count"},
 	}
 	res := map[string]*Metric{}
 	for _, r := range out.MetricDataResults {

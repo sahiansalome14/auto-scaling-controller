@@ -32,7 +32,7 @@ params:
   k_down: 4                      # bajar 4 de 4 muestras < u_low (mas evidencia que subir)
 
   # estabilidad temporal 
-  cooldown_seconds: 300
+  cooldown_seconds: 45
 
   # limites y paso
   step: 1
@@ -42,3 +42,5 @@ params:
   # calidad de datos y seguridad al reducir
   metric_freshness_seconds: 180  
   reduce_max_p90_seconds: 0.6    
+
+  error_rate_scale_up_pct: 5.0  # escalar si >5% de peticiones retornan 5xx

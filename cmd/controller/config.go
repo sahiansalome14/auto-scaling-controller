@@ -11,6 +11,7 @@ import (
 )
 
 // Tipos de decision y calidad de datos
+
 type Decision string
 
 const (
@@ -43,9 +44,18 @@ const (
 	MetricCPU        = "cpu_utilization"
 	MetricLatencyP90 = "target_response_time_p90"
 	MetricRPT        = "request_count_per_target"
+	MetricHTTP5xx    = "http_5xx_count" // HTTPCode_Target_5XX_Count del ALB (Sum por periodo)
 )
 
+// es el codigo de razon cuando los errores 5xx fuerzan un scale-up.
+const ReasonHighErrorRate = "HIGH_ERROR_RATE"
+
+// es el codigo de razon cuando instancias ya establecidas (sin pending/terminating) 
+// fallan el health check y se fuerza un scale-up
+const ReasonUnhealthyEstablished = "UNHEALTHY_ESTABLISHED"
+
 // Estructuras de datos
+
 type Window struct {
 	Start   time.Time `json:"start"`
 	End     time.Time `json:"end"`
@@ -93,7 +103,6 @@ type Result struct {
 	Error     string `json:"error,omitempty"`
 }
 
-
 // Contiene todo lo necesario para reconstruir por que se tomo la decision.
 type Record struct {
 	Cycle        int64  `json:"cycle"`
@@ -117,7 +126,7 @@ type Record struct {
 	Result     Result   `json:"result"`
 }
 
-
+// Configuracion
 type AWSConfig struct {
 	Region           string `yaml:"region"`
 	AutoScalingGroup string `yaml:"auto_scaling_group"`
@@ -147,6 +156,7 @@ type Params struct {
 	MetricFreshnessSeconds    int     `yaml:"metric_freshness_seconds"     json:"metric_freshness_seconds"`
 	ExpectedPublishLagSeconds int     `yaml:"expected_publish_lag_seconds" json:"expected_publish_lag_seconds"`
 	ReduceMaxP90Seconds       float64 `yaml:"reduce_max_p90_seconds"       json:"reduce_max_p90_seconds"`
+	ErrorRateScaleUpPct float64 `yaml:"error_rate_scale_up_pct" json:"error_rate_scale_up_pct"`
 }
 
 func (p Params) LoopInterval() time.Duration { return time.Duration(p.LoopIntervalSeconds) * time.Second }
@@ -181,9 +191,9 @@ func (c *Config) Validate() error {
 	p := c.Params
 	switch {
 	case p.MinCapacity < 1:
-		return fmt.Errorf("min_capacity debe ser >= 1")
+		return fmt.Errorf("min_capacity debe ser >= 1 (requisito del taller)")
 	case p.MaxCapacity > 5:
-		return fmt.Errorf("max_capacity debe ser <= 5")
+		return fmt.Errorf("max_capacity debe ser <= 5 (requisito del taller)")
 	case p.MinCapacity > p.MaxCapacity:
 		return fmt.Errorf("min_capacity > max_capacity")
 	case p.Step < 1:
