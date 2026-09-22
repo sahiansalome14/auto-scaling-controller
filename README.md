@@ -65,6 +65,9 @@ Al terminar cada experimento, los resultados se guardan automáticamente en `res
 
 ---
 
+### Despliegue en AWS
+ver en docs
+
 ## Verificación de cumplimiento
 
 Ejecuta con tus credenciales de AWS:
