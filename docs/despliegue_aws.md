@@ -1,4 +1,4 @@
-# Guía de Despliegue Manual en AWS 
+# Guía de Despliegue Manual en AWS
 
 Esta guía detalla los pasos exactos para desplegar la infraestructura completa del controlador de elasticidad horizontal directamente desde la consola web de AWS.
 
@@ -20,7 +20,7 @@ Asegúrate de estar trabajando en una región específica (por ejemplo, `us-east
 4. **Protocol:** `HTTP` | **Port:** `80`.
 5. **Health checks:**
    - **Health check path:** `/health`
-   - En Advanced health check settings:
+   - En *Advanced health check settings*:
      - **Healthy threshold:** `2`
      - **Unhealthy threshold:** `3`
      - **Timeout:** `5` seconds
@@ -69,7 +69,7 @@ El ASG funcionará puramente como un actuador controlado por nuestra aplicación
 5. **Load balancing:** 
    - Selecciona **Attach to an existing load balancer**.
    - Choose from your load balancer target groups: Selecciona `app-tg`.
-   - Activa los Elastic Load Balancing health checks. Next.
+   - Activa los *Elastic Load Balancing health checks*. Next.
 6. **Group size and scaling:**
    - Desired capacity: `1`
    - Minimum capacity: `1`
@@ -108,3 +108,16 @@ Finalmente, desde tu computadora local (Git Bash / WSL), sube el binario compila
 ```
 
 El script se encargará de compilar cruzado el código en Go para Linux, subirlo por SCP y reiniciar el servicio systemd del controlador de manera automática.
+
+### 5.4 Creación de la AMI del Controlador (Opcional)
+
+Para no depender de `deploy.sh` cada vez que se lanza la instancia del controlador, puedes hornear una Amazon Machine Image (AMI) que ya contenga el binario de Go y la unidad de `systemd`:
+
+1. Desde tu máquina local, ejecuta el script de horneado proporcionado:
+   ```bash
+   ./scripts/bake_ami.sh <tu_key_name> <sg-id> <subnet-id> [LabInstanceProfile]
+   ```
+   *Nota: Reemplaza `<sg-id>` y `<subnet-id>` por los IDs reales de tu VPC.*
+
+2. El script lanzará una instancia EC2 temporal, instalará el binario, creará la AMI usando `aws ec2 create-image`, y al finalizar imprimirá el `ami-id`.
+3. Puedes usar este `ami-id` para seleccionarla manualmente en la consola de AWS al lanzar una nueva instancia del controlador. Si usas esta AMI, el controlador arrancará automáticamente al encenderse la máquina sin necesidad de ejecutar `deploy.sh`.

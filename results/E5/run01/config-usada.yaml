@@ -7,13 +7,16 @@ aws:
   region: us-east-1
   auto_scaling_group: app-asg
   # Obtener de la consola de EC2 -> Target Groups -> Target Group details -> ARN
-  target_group_arn: "arn:aws:elasticloadbalancing:us-east-1:620031050250:targetgroup/app-tg20260921030055885800000001/fd5d1fcf5ed5a858"
+  target_group_arn: "arn:aws:elasticloadbalancing:us-east-1:620031050250:targetgroup/app-tg20260927165814053600000001/12df9b816b5a52fd"
   # Sufijo del ALB: ej. app/app-alb/a88197ad6defb024 (esta al final del ARN del ALB)
-  load_balancer_dimension: "app/app-alb/8675e03f837d5dfe"
+  load_balancer_dimension: "app/app-alb/b0021e174c52266e"
   # Sufijo del Target Group: ej. targetgroup/app-tg/5f58004a25dcf64f (esta al final del ARN del TG)
-  target_group_dimension: "targetgroup/app-tg20260921030055885800000001/fd5d1fcf5ed5a858"
+  target_group_dimension: "targetgroup/app-tg20260927165814053600000001/12df9b816b5a52fd"
   api_max_attempts: 3            # reintentos del SDK ante fallos de AWS
 
+# El controlador persiste lastActionAt y cycle aqui para que el cooldown
+# sobreviva reinicios del proceso (crash, OOM, systemctl restart).
+# Si el archivo no existe, se arranca con estado cero (fail-safe).
 state_path: /var/lib/autoscaling-controller/state.json
 decision_log_path: /var/log/autoscaling-controller/decisions.jsonl
 experiment_id: E5-run01
@@ -28,9 +31,9 @@ params:
   expected_publish_lag_seconds: 90   # HIPOTESIS: medir con metrics.*.age_seconds en AWS real
 
   # --- banda muerta y evidencia calibradas segun carga real ---
-  # Regla anti-oscilacion: u_low < u_high * 1/2 = 10.0
-  u_high: 20.0
-  u_low: 8.0
+  # Regla anti-oscilacion: u_low < u_high * 1/2 = 35.0
+  u_high: 70.0
+  u_low: 30.0
   k_up: 3                        # subir: 3 de 4 muestras > u_high (rechaza picos de 2 min)
   k_down: 4                      # bajar: 4 de 4 muestras < u_low (mas evidencia que subir)
 
@@ -48,8 +51,19 @@ params:
   metric_freshness_seconds: 180  # dato mas viejo que esto = datos insuficientes
   reduce_max_p90_seconds: 0.6    # no reducir si la latencia p90 ya supera 0.6 s (SLO 0.8 s)
 
-  # --- disponibilidad: escalar por errores 5xx aunque el CPU este tranquilo ---
-  # El ThreadingHTTPServer de Python tiene backlog=5: puede rechazar conexiones
-  # antes de saturar la CPU. Si la tasa de errores 5xx supera este umbral
-  # se fuerza un scale-up. 0 = desactivado.
+  # --- disponibilidad: escalar por errores 5xx aunque la CPU este tranquila ---
+  # Suma HTTPCode_ELB_5XX_Count (ALB no pudo conectar al target = backlog lleno)
+  # y HTTPCode_Target_5XX_Count (la app respondio con error HTTP).
+  # Un aumento de la primera sin la segunda es la firma de saturacion GIL/backlog.
+  # 0 = desactivado.
   error_rate_scale_up_pct: 5.0  # escalar si >5% de peticiones retornan 5xx
+
+  # --- pre-escalado proactivo por tendencia de RPS ---
+  # Pendiente de RequestCountPerTarget (req/target por periodo de 60s) que
+  # dispara un scale-up antes de que CPU o errores confirmen la saturacion.
+  # CALIBRADO con experimento E2-run01:
+  #   - Durante la rampa 40->500 RPS la pendiente oscilo entre 1500 y 2200 RPT/ciclo.
+  #   - Con umbral=1500 el proactivo habria disparado en ciclos 10-11 (~t=300s),
+  #     unos 4-5 minutos antes de que SUSTAINED_HIGH lo hiciera en ciclo 17 (~t=480s).
+  #   - Valor conservador para evitar falsos positivos ante picos fugaces.
+  rps_slope_threshold: 1500.0

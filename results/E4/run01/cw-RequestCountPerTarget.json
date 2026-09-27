@@ -1,0 +1,77 @@
+{
+    "Label": "RequestCountPerTarget",
+    "Datapoints": [
+        {
+            "Timestamp": "2026-09-27T14:57:00-05:00",
+            "Sum": 6933.25,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:06:00-05:00",
+            "Sum": 476.250002,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:05:00-05:00",
+            "Sum": 369.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T14:56:00-05:00",
+            "Sum": 6878.4,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:00:00-05:00",
+            "Sum": 3380.6000000000004,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T14:59:00-05:00",
+            "Sum": 4893.05,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T14:58:00-05:00",
+            "Sum": 6134.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:02:00-05:00",
+            "Sum": 1881.8000000000002,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:01:00-05:00",
+            "Sum": 2629.4,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:04:00-05:00",
+            "Sum": 497.75,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T14:55:00-05:00",
+            "Sum": 2871.5333330000003,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:03:00-05:00",
+            "Sum": 1143.8,
+            "Maximum": 0.0,
+            "Unit": "None"
+        }
+    ]
+}

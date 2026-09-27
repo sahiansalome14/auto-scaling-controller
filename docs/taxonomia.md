@@ -1,22 +1,20 @@
 # Taxonomía del Controlador de Elasticidad
 
-El diseño del controlador implementado (`autoscaling-controller`) se clasifica según la taxonomía propuesta por Al-Dhuraibi et al. (2018) en Elasticity in Cloud Computing: State of the Art and Research Challenges.
+El diseño del controlador implementado (`autoscaling-controller`) se clasifica según la taxonomía propuesta por Al-Dhuraibi et al. (2018) en *Elasticity in Cloud Computing: State of the Art and Research Challenges*.
 
-Esta clasificación demuestra cómo el controlador se enmarca dentro de las categorías académicas y profesionales de los sistemas de auto-escalado.
+Esta clasificación demuestra cómo el controlador se enmarca dentro de las categorías académicas de los sistemas de auto-escalado (Figura 2 del artículo citado).
 
-| Dimensión | Clasificación | Justificación |
+| Dimensión de la Taxonomía | Clasificación del Controlador | Justificación |
 |---|---|---|
-| **Dirección** | Horizontal (Scale-out/in) | Añade y retira instancias EC2 enteras del grupo de autoescalado. No altera los recursos (CPU/RAM) de las instancias existentes en vivo (Scale-up/down). |
-| **Recurso** | Cómputo (CPU) / Servidores Web | Las instancias operan como servidores web en EC2 (`t3.micro`) bajo un Launch Template homogéneo. |
-| **Alcance del Proveedor** | Monoproveedor (AWS) | Se integra exclusivamente con servicios de AWS: CloudWatch, EC2 Auto Scaling Groups y Application Load Balancers. |
-| **Propósito** | Rendimiento y Costo | Busca mantener la latencia $p90 \le 0.6$ s (rendimiento) al mismo tiempo que evita el sobreaprovisionamiento de instancias cuando no son necesarias (costo). |
-| **Modo de Operación** | Reactivo (MAPE-K Feedback Loop) | Observa métricas pasadas para tomar decisiones en el presente; no predice la carga futura proactivamente. |
-| **Método de Decisión** | Reglas y Umbrales con Histéresis | Utiliza una cascada de guardas y una banda muerta (deadband) de CPU $[8\%,20\%]$, con parámetros asimétricos ($k_{down}=4 > k_{up}=3$) y un cooldown de 300s para evitar oscilaciones. |
-| **Arquitectura** | Centralizado y Desacoplado | Consiste en un proceso controlador único en una VM dedicada. Utiliza el ASG únicamente como actuador externo, apagando las políticas de AWS dinámicas. |
-| **Tiempo de Vida** | Discreto / Periódico | Muestreo periódico ($T=30$ s) de las métricas agregadas en CloudWatch cada 60 s. |
+| **Configuración (Configuration)** | Rígida (Rigid) | Utiliza instancias EC2 de tamaño fijo (`t3.micro`) bajo un Launch Template homogéneo, en lugar de negociar recursos de forma continua (configurable/auction). |
+| **Alcance (Scope)** | Infraestructura -> VMs | El controlador opera directamente sobre la infraestructura virtual aprovisionando y destruyendo Máquinas Virtuales enteras a través de un ASG. |
+| **Propósito (Purpose)** | Rendimiento (Performance), Disponibilidad y Costo | Busca mantener la latencia baja y reaccionar a errores 5xx (Rendimiento/Disponibilidad) minimizando a su vez la sobreprovisión de recursos (Costo). |
+| **Modo, política (Mode, policy)** | Automático -> Híbrido (Reactivo + Proactivo) | Combina **Reactivo** (umbrales estáticos de CPU y errores) con **Proactivo** (análisis de series temporales calculando la pendiente de RPS para pre-escalar antes de la saturación). |
+| **Método, acción (Method, action)** | Horizontal (Horizontal scaling) | El sistema de elasticidad añade (scale-out) o retira (scale-in) instancias enteras de cómputo del ASG en lugar de redimensionar la memoria/CPU de una instancia viva (escalado vertical). |
+| **Arquitectura (Architecture)** | Centralizada (Centralized) | Consiste en un proceso controlador único y maestro que recoge métricas globales y aplica decisiones para todo el clúster. |
+| **Proveedor (Provider)** | Único (Single) | Depende exclusivamente de un solo proveedor de nube (AWS) y sus APIs específicas (CloudWatch, EC2 Auto Scaling Groups, Application Load Balancers). |
 
 ## Análisis de Decisiones de Diseño
 
-La principal decisión que diferencia este controlador de una política estándar de Target Tracking de AWS es el uso de múltiples métricas simultáneamente (CPU, latencia p90 y RequestCountPerTarget) combinadas en una regla estricta que proyecta cómo se comportará la carga tras una acción de Scale-In.
-
-La validación explícita `u_low < u_high * (min_capacity / (min_capacity + step))` evita oscilaciones matemáticas, lo que hace que el diseño del controlador no solo cumpla con la clasificación de Al-Dhuraibi, sino que implemente controles de estabilidad específicos recomendados en la literatura.
+El diseño de este controlador implementa una lógica reactiva basada en **umbrales estáticos (Static thresholds)** pero los refuerza con **histéresis paramétrica** y una **banda muerta (deadband)**. 
+La validación matemática explícita `u_low < u_high * (min_capacity / (min_capacity + step))` evita oscilaciones destructivas (*thrashing*). Adicionalmente, el controlador compensa su naturaleza puramente reactiva al introducir una regla proactiva de rampa de carga (`rps_slope_threshold`), ubicándolo en un punto intermedio interesante dentro de la clasificación estricta de la literatura, aunque su bucle de control principal sigue siendo mapeado como Reactivo basado en Umbrales.

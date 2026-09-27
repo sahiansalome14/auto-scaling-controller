@@ -1,0 +1,77 @@
+{
+    "Label": "TargetResponseTime",
+    "Datapoints": [
+        {
+            "Timestamp": "2026-09-27T14:38:00-05:00",
+            "Average": 0.009617165542832064,
+            "Maximum": 0.316468,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:29:00-05:00",
+            "Average": 0.006314658902691511,
+            "Maximum": 0.105933,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:37:00-05:00",
+            "Average": 0.010085590799933753,
+            "Maximum": 0.43537,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:28:00-05:00",
+            "Average": 0.005778599388379205,
+            "Maximum": 0.013367,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:36:00-05:00",
+            "Average": 0.049450553565393705,
+            "Maximum": 1.364069,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:35:00-05:00",
+            "Average": 0.03496801696998069,
+            "Maximum": 1.396179,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:34:00-05:00",
+            "Average": 1.7920816767915069,
+            "Maximum": 2.266014,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:33:00-05:00",
+            "Average": 0.4540305595228301,
+            "Maximum": 1.962527,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:32:00-05:00",
+            "Average": 0.02569046298563954,
+            "Maximum": 0.937282,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:31:00-05:00",
+            "Average": 0.006970281743050338,
+            "Maximum": 0.259661,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:39:00-05:00",
+            "Average": 0.01431443418898958,
+            "Maximum": 0.801424,
+            "Unit": "Seconds"
+        },
+        {
+            "Timestamp": "2026-09-27T14:30:00-05:00",
+            "Average": 0.008550665096359744,
+            "Maximum": 0.180652,
+            "Unit": "Seconds"
+        }
+    ]
+}

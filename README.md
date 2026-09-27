@@ -17,6 +17,61 @@ El controlador decide entre tres acciones: `MAINTAIN_CAPACITY`, `INCREASE_CAPACI
 *   **Instancias EC2:** Aplicación Python Gunicorn (4 workers) para maximizar la métrica real de CPU evadiendo el GIL de Python.
 *   **Controlador Go:** Instancia EC2 aislada que corre el binario compilado. Revisa métricas, evalúa 8 guardas de seguridad/negocio y decide.
 
+
+``
+
+## 2.1 Flujo Básico del Bucle de Control
+```mermaid
+stateDiagram-v2
+    [*] --> OBSERVAR : Inicio Ciclo (30s)
+    
+    OBSERVAR --> VALIDAR : 1. Obtener Métricas de CloudWatch y AWS
+    
+    VALIDAR --> MAINTAIN_CAPACITY : Datos insuficientes o viejos
+    VALIDAR --> DECIDIR : Datos OK
+    
+    DECIDIR --> ACTUAR : INCREASE / REDUCE
+    DECIDIR --> MAINTAIN_CAPACITY : WITHIN_BAND
+    
+    ACTUAR --> REGISTRAR : Llamada a SetDesiredCapacity
+    MAINTAIN_CAPACITY --> REGISTRAR : Ninguna acción
+    
+    REGISTRAR --> [*] : Escribir en decisions.jsonl
+```
+
+## 2.2 Cascada de Decisiones (Policy)
+```mermaid
+flowchart TD
+    Start([Inicio Evaluación]) --> G1{1. ¿Datos válidos?}
+    G1 -- NO --> R1[MAINTAIN: DATA_INSUFFICIENT]
+    G1 -- SÍ --> G2{2. ¿Transición en curso?}
+    
+    G2 -- SÍ --> R2[MAINTAIN: CAPACITY_UNSTABLE]
+    G2 -- NO --> G3{3. ¿Cooldown Activo?}
+    
+    G3 -- SÍ --> R3[MAINTAIN: COOLDOWN]
+    G3 -- NO --> G4{4. ¿Unhealthy Established?}
+    
+    G4 -- SÍ --> R4[INCREASE: UNHEALTHY_ESTABLISHED]
+    G4 -- NO --> G5{5. ¿Alta Tasa de Errores > 5%?}
+    
+    G5 -- SÍ --> R5[INCREASE: HIGH_ERROR_RATE]
+    G5 -- NO --> G6{6. ¿Tendencia Proactiva RPS > Umbral?}
+    
+    G6 -- SÍ --> R6[INCREASE: PROACTIVE_RPS_TREND]
+    G6 -- NO --> G7{7. ¿Sustained High CPU > u_high?}
+    
+    G7 -- SÍ --> R7[INCREASE: SUSTAINED_HIGH]
+    G7 -- NO --> G8{8. ¿Sustained Low CPU < u_low?}
+    
+    G8 -- SÍ --> G8_A{¿safeToReduce?}
+    G8_A -- SÍ --> R8[REDUCE: SUSTAINED_LOW]
+    G8_A -- NO --> R9
+    
+    G8 -- NO --> R9[MAINTAIN: WITHIN_BAND]
+```
+
+
 ---
 
 ## 3. Instrucciones para Ejecutar el Proyecto

@@ -1,0 +1,65 @@
+{
+    "Label": "HealthyHostCount",
+    "Datapoints": [
+        {
+            "Timestamp": "2026-09-27T15:26:00-05:00",
+            "Average": 1.0,
+            "Maximum": 1.0,
+            "Unit": "Count"
+        },
+        {
+            "Timestamp": "2026-09-27T15:30:00-05:00",
+            "Average": 1.0,
+            "Maximum": 1.0,
+            "Unit": "Count"
+        },
+        {
+            "Timestamp": "2026-09-27T15:25:00-05:00",
+            "Average": 1.0,
+            "Maximum": 1.0,
+            "Unit": "Count"
+        },
+        {
+            "Timestamp": "2026-09-27T15:29:00-05:00",
+            "Average": 1.0,
+            "Maximum": 1.0,
+            "Unit": "Count"
+        },
+        {
+            "Timestamp": "2026-09-27T15:33:00-05:00",
+            "Average": 3.0,
+            "Maximum": 3.0,
+            "Unit": "Count"
+        },
+        {
+            "Timestamp": "2026-09-27T15:24:00-05:00",
+            "Average": 1.0,
+            "Maximum": 1.0,
+            "Unit": "Count"
+        },
+        {
+            "Timestamp": "2026-09-27T15:28:00-05:00",
+            "Average": 1.0,
+            "Maximum": 1.0,
+            "Unit": "Count"
+        },
+        {
+            "Timestamp": "2026-09-27T15:32:00-05:00",
+            "Average": 2.0,
+            "Maximum": 2.0,
+            "Unit": "Count"
+        },
+        {
+            "Timestamp": "2026-09-27T15:27:00-05:00",
+            "Average": 1.0,
+            "Maximum": 1.0,
+            "Unit": "Count"
+        },
+        {
+            "Timestamp": "2026-09-27T15:31:00-05:00",
+            "Average": 1.0,
+            "Maximum": 1.0,
+            "Unit": "Count"
+        }
+    ]
+}

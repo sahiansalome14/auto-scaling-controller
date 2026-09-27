@@ -1,0 +1,77 @@
+{
+    "Label": "RequestCountPerTarget",
+    "Datapoints": [
+        {
+            "Timestamp": "2026-09-27T16:17:00-05:00",
+            "Sum": 11477.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:16:00-05:00",
+            "Sum": 9581.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:19:00-05:00",
+            "Sum": 6985.499999,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:10:00-05:00",
+            "Sum": 721.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:18:00-05:00",
+            "Sum": 11977.5,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:12:00-05:00",
+            "Sum": 2001.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:21:00-05:00",
+            "Sum": 4263.883333,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:11:00-05:00",
+            "Sum": 1904.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:20:00-05:00",
+            "Sum": 5230.999999,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:15:00-05:00",
+            "Sum": 7509.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:14:00-05:00",
+            "Sum": 5522.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T16:13:00-05:00",
+            "Sum": 3549.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        }
+    ]
+}

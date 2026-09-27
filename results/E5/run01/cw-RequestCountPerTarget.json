@@ -1,0 +1,65 @@
+{
+    "Label": "RequestCountPerTarget",
+    "Datapoints": [
+        {
+            "Timestamp": "2026-09-27T15:24:00-05:00",
+            "Sum": 1749.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:33:00-05:00",
+            "Sum": 1070.1666650000002,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:28:00-05:00",
+            "Sum": 7105.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:32:00-05:00",
+            "Sum": 1734.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:31:00-05:00",
+            "Sum": 2624.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:27:00-05:00",
+            "Sum": 4607.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:26:00-05:00",
+            "Sum": 4577.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:30:00-05:00",
+            "Sum": 10331.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:25:00-05:00",
+            "Sum": 4511.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        },
+        {
+            "Timestamp": "2026-09-27T15:29:00-05:00",
+            "Sum": 12612.0,
+            "Maximum": 0.0,
+            "Unit": "None"
+        }
+    ]
+}

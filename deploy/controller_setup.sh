@@ -1,5 +1,6 @@
 #!/bin/bash
-# Pega este script en Advanced Details - User data al lanzar la EC2 del controlador
+# controller_setup.sh — user-data para la instancia EC2 del controlador.
+# Pegar este script en "Advanced Details -> User data" al lanzar la EC2 del controlador
 # en la consola web de AWS.
 set -euxo pipefail
 
@@ -32,3 +33,10 @@ UNIT
 echo 'CONTROLLER_ARGS=-dry-run' > /etc/autoscaling-controller/env
 systemctl daemon-reload
 systemctl enable autoscaling-controller
+
+# Si se usa una AMI horneada, el binario ya esta instalado: arrancar el servicio.
+# Si se usa la AMI base, el binario lo sube scripts/deploy.sh.
+if test -f /usr/local/bin/autoscaling-controller; then
+  echo "Binario detectado: iniciando el servicio..."
+  systemctl start autoscaling-controller
+fi

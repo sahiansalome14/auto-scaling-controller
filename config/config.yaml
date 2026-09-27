@@ -1,46 +1,51 @@
-# Configuracion del controlador 
+# Configuracion del controlador de auto-escalado horizontal
 
-# Todos los valores de params son hipotesis para experimentar
 aws:
   region: us-east-1
   auto_scaling_group: app-asg
-  # Obtener de la consola de EC2 - Target Groups - Target Group details - ARN
+  # Obtener de la consola de EC2 -> Target Groups -> Target Group details -> ARN
   target_group_arn: "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/app-tg/0000000000000000"
-  # Sufijo  (esta al final del ARN del ALB)
+  # Sufijo del ALB (esta al final del ARN del ALB)
   load_balancer_dimension: "app/app-alb/0000000000000000"
-  # Sufijo (esta al final del ARN del TG)
+  # Sufijo del Target Group (esta al final del ARN del TG)
   target_group_dimension: "targetgroup/app-tg/0000000000000000"
-  api_max_attempts: 3            
+  api_max_attempts: 3            # reintentos del SDK ante fallos de AWS
 
+# Rutas de persistencia del estado y registro de decisiones
 state_path: /var/lib/autoscaling-controller/state.json
 decision_log_path: /var/log/autoscaling-controller/decisions.jsonl
 experiment_id: manual
 
 params:
-  # Frecuencia y observacion 
-  loop_interval_seconds: 30     
-  aggregation_period_seconds: 60 
-  n_samples: 4                   
+  # --- cadencia y observacion ---
+  loop_interval_seconds: 30
+  aggregation_period_seconds: 60
+  n_samples: 4
   observation_window_seconds: 360
-  expected_publish_lag_seconds: 90   
+  expected_publish_lag_seconds: 90
 
-  # banda muerta y evidencia calibradas segun carga real 
-  # Regla anti-oscilacion u_low < u_high * 1/2 
-  u_high: 20.0
-  u_low: 8.0
-  k_up: 3                        # subir 3 de 4 muestras > u_high
-  k_down: 4                      # bajar 4 de 4 muestras < u_low (mas evidencia que subir)
+  # --- banda muerta y evidencia ---
+  # Regla anti-oscilacion: u_low < u_high * 1/2
+  u_high: 70.0
+  u_low: 30.0
+  k_up: 3                        # subir: 3 de 4 muestras > u_high
+  k_down: 4                      # bajar: 4 de 4 muestras < u_low
 
-  # estabilidad temporal 
+  # --- estabilidad temporal ---
   cooldown_seconds: 45
 
-  # limites y paso
+  # --- limites y paso ---
   step: 1
   min_capacity: 1                # requisito taller
   max_capacity: 5                # requisito taller
 
-  # calidad de datos y seguridad al reducir
-  metric_freshness_seconds: 180  
-  reduce_max_p90_seconds: 0.6    
+  # --- calidad de datos y seguridad al reducir ---
+  metric_freshness_seconds: 180
+  reduce_max_p90_seconds: 0.6    # no reducir si la latencia p90 supera este límite
 
-  error_rate_scale_up_pct: 5.0  # escalar si >5% de peticiones retornan 5xx
+  # --- disponibilidad y errores ---
+  error_rate_scale_up_pct: 5.0   # escalar si >5% de peticiones retornan 5xx (ELB + Target)
+
+  # --- pre-escalado proactivo por tendencia de RPS ---
+  # Desactivado si es 0
+  rps_slope_threshold: 1500.0

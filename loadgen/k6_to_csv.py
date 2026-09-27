@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
-# Convierte la salida CSV de k6 al formato de experimentos
-"""
+"""k6_to_csv.py — Convierte la salida CSV bruta de k6 al formato columnar
+del pipeline de experimentos SI3016.
+
 Uso:
     python3 loadgen/k6_to_csv.py \\
         --k6csv   /tmp/k6_raw.csv \\
         --profile loadgen/profiles/E2.json \\
         --experiment E2-run01 \\
         --out results/E2/run01/loadgen.csv
+
+Formato de entrada (k6 --out csv):
+    metric_name,timestamp,metric_value,...,status,...
+
+Formato de salida:
+    experiment_id,t_seconds,offered,served,ok,errors,
+    latency_p50_s,latency_p90_s,latency_max_s
 """
 
 import argparse
@@ -18,7 +26,7 @@ from collections import defaultdict
 
 
 def rate_at(profile, t):
-    #Tasa objetivo (req/s) 
+    """Tasa objetivo (req/s) en el segundo t."""
     pts = profile["points"]
     if t <= pts[0]["t"]:
         return pts[0]["rps"]
@@ -44,9 +52,11 @@ def main():
         profile = json.load(f)
     duration = profile["duration_seconds"]
 
-    # Acumular datos por segundo a partir del CSV crudo de k6
+    # Acumular datos por segundo a partir del CSV crudo de k6.
+    # k6 escribe una fila por muestra; nos interesan las filas de http_req_duration
+    # (una por petición HTTP completada).
     per_second = defaultdict(lambda: {"lat": [], "ok": 0, "err": 0, "served": 0})
-    start_ts = None  # timestamp de la primera petición observada
+    start_ts = None  # timestamp Unix (s) de la primera petición observada
 
     with open(args.k6csv, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -54,6 +64,8 @@ def main():
             if row.get("metric_name") != "http_req_duration":
                 continue
 
+            # k6 --out csv escribe el timestamp en SEGUNDOS desde Unix epoch
+            # (no en ms). Dividir por 1000 metia todas las filas en t=0.
             try:
                 ts_s = float(row["timestamp"])
             except (KeyError, ValueError):
@@ -66,19 +78,20 @@ def main():
             if sec < 0 or sec >= duration:
                 continue
 
+            # Latencia en ms → s, acotada al timeout para evitar artefactos.
             try:
                 lat_s = min(float(row["metric_value"]) / 1000.0, args.timeout)
             except (KeyError, ValueError):
                 lat_s = args.timeout
 
-            # Estado HTTP 
+            # Estado HTTP (tag de k6).
             try:
                 status = int(row.get("status") or 0)
             except ValueError:
                 status = 0
 
-            # k6 registra duracion 0 en las peticiones que expiran (status 0)
-            # las contamos con el valor del timeout para no falsear p50/p90
+            # k6 registra duracion 0 en las peticiones que expiran (status 0):
+            # las contamos con el valor del timeout para no falsear p50/p90.
             if status == 0:
                 lat_s = args.timeout
 
