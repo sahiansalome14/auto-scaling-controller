@@ -1,0 +1,21 @@
+# Binarios compilados
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Archivos de pruebas y cobertura
+*.out
+*.test
+
+# Directorio de dependencias si usas vendor local (opcional)
+/vendor/
+
+# Archivos del sistema operativo y editores
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.env
