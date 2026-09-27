@@ -10,20 +10,20 @@ import (
 )
 
 // Devuelve error si falla cualquier llamada a AWS, se queda en mantain
-func observe(ctx context.Context, clients *Clients, cfg *Config, now time.Time) (*Observation, Quality, error) {
+func observe(ctx context.Context, provider CloudProvider, cfg *Config, now time.Time) (*Observation, Quality, error) {
 	p := cfg.Params
 	obs := &Observation{
 		Window:  Window{Start: now.Add(-p.Window()), End: now, Seconds: p.ObservationWindowSeconds},
 		Metrics: map[string]*Metric{},
 	}
 
-	capacity, err := fetchCapacity(ctx, clients, cfg)
+	capacity, err := provider.FetchCapacity(ctx, cfg)
 	if err != nil {
 		return nil, DataInsufficient, fmt.Errorf("observando capacidad: %w", err)
 	}
 	obs.Capacity = capacity
 
-	metrics, err := fetchMetrics(ctx, clients, cfg, obs.Window.Start, now)
+	metrics, err := provider.FetchMetrics(ctx, cfg, obs.Window.Start, now)
 	if err != nil {
 		return obs, DataInsufficient, fmt.Errorf("observando metricas: %w", err)
 	}
@@ -61,6 +61,7 @@ func validateMetrics(obs *Observation, p Params, now time.Time) Quality {
 	return DataOK
 }
 
+
 // devuelve el motivo si el valor es fisicamente imposible
 func invalidDatapoint(metric string, v float64) string {
 	switch {
@@ -70,6 +71,10 @@ func invalidDatapoint(metric string, v float64) string {
 		return "negativo"
 	case metric == MetricCPU && v > 100:
 		return "CPU > 100%"
+	case metric == MetricRPT && v > 1_000_000:
+		// RequestCountPerTarget > 1M req/target/minuto es fisicamente imposible
+		// en una instancia t3.micro. Filtra corrupciones de CloudWatch 
+		return "RPT imposible (> 1M)"
 	}
 	return ""
 }
