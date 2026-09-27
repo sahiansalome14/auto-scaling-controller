@@ -16,5 +16,9 @@ Esta clasificación demuestra cómo el controlador se enmarca dentro de las cate
 
 ## Análisis de Decisiones de Diseño
 
-El diseño de este controlador implementa una lógica reactiva basada en **umbrales estáticos (Static thresholds)** pero los refuerza con **histéresis paramétrica** y una **banda muerta (deadband)**. 
-La validación matemática explícita `u_low < u_high * (min_capacity / (min_capacity + step))` evita oscilaciones destructivas (*thrashing*). Adicionalmente, el controlador compensa su naturaleza puramente reactiva al introducir una regla proactiva de rampa de carga (`rps_slope_threshold`), ubicándolo en un punto intermedio interesante dentro de la clasificación estricta de la literatura, aunque su bucle de control principal sigue siendo mapeado como Reactivo basado en Umbrales.
+El diseño de este controlador implementa una lógica **reactiva** basada en **umbrales estáticos (Static thresholds)** — guardas de CPU y errores 5xx — reforzada con **histéresis paramétrica** y una **banda muerta (deadband)**.
+
+La validación matemática explícita `u_low < u_high × (min_capacity / (min_capacity + step))` (implementada en `config.go:Validate()`) evita oscilaciones destructivas (*thrashing*).
+
+Adicionalmente, la guarda `PROACTIVE_RPS_TREND` agrega un componente **proactivo**: usa regresión lineal por mínimos cuadrados (OLS) sobre las muestras de `RequestCountPerTarget` para detectar tendencias de crecimiento y pre-escalar antes de que CPU o errores confirmen la saturación. Por tanto, la clasificación correcta del modo/política es **Híbrido (Reactivo + Proactivo)**, aunque el mecanismo reactivo de umbrales sigue siendo el camino más frecuente en condiciones de carga estable.
+

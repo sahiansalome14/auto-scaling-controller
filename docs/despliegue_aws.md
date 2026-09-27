@@ -53,7 +53,7 @@ Asegúrate de estar trabajando en una región específica (por ejemplo, `us-east
    - **Security groups:** Crea o selecciona un Security Group que permita tráfico HTTP (puerto 80) desde el Security Group del ALB creado en el paso 2.2.
 7. **Advanced details:**
    - **Detailed CloudWatch monitoring:** Selecciona **Enable** (Crucial para tener métricas de 1 minuto).
-   - **User data:** Pega el contenido exacto del archivo `deploy/app_userdata.sh` de tu repositorio local.
+   - **User data:** El user-data de la aplicación está embebido directamente en el script `scripts/bake_ami.sh` (sección `BOOTSTRAP`). Copia el bloque entre `<<'BOOTSTRAP'` y `BOOTSTRAP` de ese archivo.
 8. Haz clic en **Create launch template**.
 
 ---
@@ -90,7 +90,7 @@ El ASG funcionará puramente como un actuador controlado por nuestra aplicación
 6. **Network settings:** Selecciona una subred pública. Asigna una IP pública automáticamente. Permite tráfico SSH (puerto 22).
 7. **Advanced details:**
    - **IAM instance profile:** Selecciona **LabInstanceProfile** (si estás en AWS Academy) o un rol con permisos completos para EC2, AutoScaling y CloudWatch.
-   - **User data:** Pega el contenido del archivo `deploy/controller_setup.sh`.
+   - **User data:** No se requiere user-data adicional si usas la AMI horneada con `scripts/bake_ami_2.sh` (que ya contiene el binario y el `config.yaml`). Si usas Amazon Linux 2023 base, el user-data mínimo está en el bloque `BOOTSTRAP` dentro de `scripts/bake_ami.sh`.
 8. Haz clic en **Launch instance**.
 
 ### 5.2 Configuración del Archivo `config.yaml`
@@ -109,15 +109,13 @@ Finalmente, desde tu computadora local (Git Bash / WSL), sube el binario compila
 
 El script se encargará de compilar cruzado el código en Go para Linux, subirlo por SCP y reiniciar el servicio systemd del controlador de manera automática.
 
-### 5.4 Creación de la AMI del Controlador (Opcional)
+### 5.4 Creación de la AMI del Controlador
 
-Para no depender de `deploy.sh` cada vez que se lanza la instancia del controlador, puedes hornear una Amazon Machine Image (AMI) que ya contenga el binario de Go y la unidad de `systemd`:
+**Uso (ejecutar desde tu máquina local con AWS CLI configurado):**
+```bash
+# AMI de producción (incluye config.yaml con ARNs reales):
+./scripts/bake_ami.sh <tu_key_name> <sg-id> <subnet-id> [LabInstanceProfile]
+```
 
-1. Desde tu máquina local, ejecuta el script de horneado proporcionado:
-   ```bash
-   ./scripts/bake_ami.sh <tu_key_name> <sg-id> <subnet-id> [LabInstanceProfile]
-   ```
-   *Nota: Reemplaza `<sg-id>` y `<subnet-id>` por los IDs reales de tu VPC.*
+El script lanzará una instancia EC2 temporal, instalará el binario y la configuración, creará la AMI con `aws ec2 create-image`, esperará a que esté disponible, y al finalizar imprimirá el `ami-id`. Al lanzar una instancia con esa AMI, el controlador arrancará gobernando la infraestructura al instante sin ningún paso adicional.
 
-2. El script lanzará una instancia EC2 temporal, instalará el binario, creará la AMI usando `aws ec2 create-image`, y al finalizar imprimirá el `ami-id`.
-3. Puedes usar este `ami-id` para seleccionarla manualmente en la consola de AWS al lanzar una nueva instancia del controlador. Si usas esta AMI, el controlador arrancará automáticamente al encenderse la máquina sin necesidad de ejecutar `deploy.sh`.

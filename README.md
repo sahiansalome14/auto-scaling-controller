@@ -1,4 +1,4 @@
-# Controlador de Elasticidad Horizontal
+# Controlador de Elasticidad Horizontal 
 
 ## 1. Resumen Ejecutivo
 
@@ -17,8 +17,6 @@ El controlador decide entre tres acciones: `MAINTAIN_CAPACITY`, `INCREASE_CAPACI
 *   **Instancias EC2:** Aplicación Python Gunicorn (4 workers) para maximizar la métrica real de CPU evadiendo el GIL de Python.
 *   **Controlador Go:** Instancia EC2 aislada que corre el binario compilado. Revisa métricas, evalúa 8 guardas de seguridad/negocio y decide.
 
-
-``
 
 ## 2.1 Flujo Básico del Bucle de Control
 ```mermaid
@@ -128,4 +126,4 @@ La inteligencia del controlador reside en `cmd/controller/policy.go`. Las decisi
 | 8 | CPU < `u_low` unánime **y** reducción segura | `REDUCE (SUSTAINED_LOW)` |
 | 9 | Ninguna de las anteriores | `MAINTAIN (WITHIN_BAND)` |
 
-*Nota:* Reducir es seguro si la proyección matemática `CPU * (N / (N-1))` no cruza la barrera `u_high`, y si la latencia no está degradada. Esto previene un ciclo de *thrashing* (subir y bajar repetidamente).
+*Nota:* Reducir es seguro si la proyección matemática $\overline{CPU}_{ventana} \times \frac{Desired}{target}$ no alcanza `u_high` (donde `target = Desired - step`), y si la latencia media de la ventana no supera `reduce_max_p90_seconds`. Esto previene un ciclo de *thrashing* (subir y bajar repetidamente).
