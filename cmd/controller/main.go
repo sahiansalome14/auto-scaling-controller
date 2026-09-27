@@ -19,12 +19,72 @@ import (
 	"time"
 )
 
+// Estado persistido entre reinicios del proceso.
+// Se escribe en state_path tras cada accion exitosa y se lee al arrancar.
+// Si el archivo no existe o esta corrupto, se arranca con estado cero (fail-safe).
+type persistedState struct {
+	LastActionAt time.Time `json:"last_action_at"`
+	Cycle        int64     `json:"cycle"`
+}
+
 var (
-	// guarda el tiempo de la última acción (se pierde al reinicia)
+	// guarda el tiempo de la ultima accion (persiste en disco via state_path)
 	lastActionAt time.Time
-	logFile *os.File // archivo de decisiones JSONL (append)
-	cycle   int64    // contador de ciclos, empieza en 0
+	logFile      *os.File // archivo de decisiones JSONL (append)
+	cycle        int64    // contador de ciclos, empieza en 0
 )
+
+// loadState lee lastActionAt y cycle desde el archivo de estado.
+// Si el archivo no existe o no es parseable, no hace nada (estado cero).
+func loadState(statePath string) {
+	if statePath == "" {
+		return
+	}
+	raw, err := os.ReadFile(statePath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("advertencia: no se pudo leer el estado persistido (%v); se arranca con estado cero", err)
+		}
+		return
+	}
+	var s persistedState
+	if err := json.Unmarshal(raw, &s); err != nil {
+		log.Printf("advertencia: estado persistido corrupto (%v); se arranca con estado cero", err)
+		return
+	}
+	if !s.LastActionAt.IsZero() {
+		lastActionAt = s.LastActionAt
+		log.Printf("estado recuperado: ultima accion fue %s (hace %.0fs), ciclo=%d",
+			lastActionAt.Format(time.RFC3339), time.Since(lastActionAt).Seconds(), s.Cycle)
+	}
+	if s.Cycle > 0 {
+		cycle = s.Cycle
+	}
+}
+
+// saveState escribe lastActionAt y cycle en el archivo de estado de forma atomica
+// (escribe en un archivo temporal y luego hace rename para evitar escrituras parciales).
+// Si falla, solo emite un warning; nunca es fatal.
+func saveState(statePath string, actionAt time.Time, cycleN int64) {
+	if statePath == "" {
+		return
+	}
+	s := persistedState{LastActionAt: actionAt, Cycle: cycleN}
+	data, err := json.Marshal(s)
+	if err != nil {
+		log.Printf("advertencia: no se pudo serializar el estado (%v)", err)
+		return
+	}
+	tmp := statePath + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		log.Printf("advertencia: no se pudo escribir el estado temporal (%v)", err)
+		return
+	}
+	if err := os.Rename(tmp, statePath); err != nil {
+		log.Printf("advertencia: no se pudo mover el estado a %s (%v)", statePath, err)
+		_ = os.Remove(tmp)
+	}
+}
 
 func main() {
 	cfgPath    := flag.String("config", "/etc/autoscaling-controller/config.yaml", "ruta de la configuracion")
@@ -41,6 +101,9 @@ func main() {
 		cfg.ExperimentID = *experiment
 	}
 
+	// Recuperar estado persistido (cooldown y contador de ciclos sobreviven reinicios)
+	loadState(cfg.StatePath)
+
 	// Abrir el archivo de log de decisiones en modo append
 	if err := os.MkdirAll(filepath.Dir(cfg.DecisionLog), 0o755); err != nil {
 		log.Fatalf("creando directorio de log: %v", err)
@@ -54,10 +117,12 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	clients, err := newClients(ctx, cfg)
+	var provider CloudProvider
+	awsProv, err := NewAWSProvider(ctx, cfg)
 	if err != nil {
-		log.Fatalf("inicializando clientes de AWS: %v", err)
+		log.Fatalf("inicializando proveedor de AWS: %v", err)
 	}
+	provider = awsProv
 
 	p := cfg.Params
 	fmt.Printf("controlador iniciado  experimento=%s  intervalo=%ds  capacidad=[%d,%d]\n",
@@ -65,11 +130,14 @@ func main() {
 	if *dry {
 		fmt.Println("MODO DRY-RUN: se observa, decide y registra sin modificar la infraestructura")
 	}
+	if cfg.StatePath != "" {
+		fmt.Printf("estado persistido en: %s\n", cfg.StatePath)
+	}
 
 	run := func() {
 		cctx, ccancel := context.WithTimeout(ctx, p.LoopInterval())
 		defer ccancel()
-		r := runCycle(cctx, cfg, clients, *dry)
+		r := runCycle(cctx, cfg, provider, *dry)
 		fmt.Printf("%s  ciclo=%d  %s  capacidad=%d  calidad=%s  resultado=%s  %s\n",
 			r.Timestamp.Format(time.RFC3339), r.Cycle, r.Decision,
 			r.Capacity.Desired, r.Quality, r.Result.Status, r.ReasonCode)
@@ -99,12 +167,12 @@ func main() {
 }
 
 // ejecuta un ciclo completo observar - decidir -registrar - actuar.
-func runCycle(ctx context.Context, cfg *Config, clients *Clients, dry bool) *Record {
+func runCycle(ctx context.Context, cfg *Config, provider CloudProvider, dry bool) *Record {
 	now := time.Now().UTC()
 	cycle++
 	p := cfg.Params
 
-	obs, quality, err := observe(ctx, clients, cfg, now)
+	obs, quality, err := observe(ctx, provider, cfg, now)
 
 	// armar el registro con lo que tenemos (la observacion puede venir parcial si hubo error)
 	rec := &Record{
@@ -160,17 +228,19 @@ func runCycle(ctx context.Context, cfg *Config, clients *Clients, dry bool) *Rec
 	}
 
 	start := time.Now()
-	actErr := setDesiredCapacity(ctx, clients, cfg, out.Target)
+	actErr := provider.SetDesiredCapacity(ctx, cfg, out.Target)
 	rec.Result.LatencyMS = time.Since(start).Milliseconds()
 
 	if actErr != nil {
-		// La accion fallo no se actualiza lastActionAt, asi que el siguiente
-		// ciclo (en 30 s) reevaluara con datos frescos sin cooldown ficticio
+		// La accion fallo: no se actualiza lastActionAt, asi que el siguiente
+		// ciclo (en 30 s) reevaluara con datos frescos sin cooldown ficticio.
 		rec.Result.Status = "FAILED"
 		rec.Result.Error = actErr.Error()
 	} else {
 		rec.Result.Status = "SUCCEEDED"
 		lastActionAt = time.Now().UTC()
+		// Persistir el estado para que el cooldown sobreviva un reinicio del proceso
+		saveState(cfg.StatePath, lastActionAt, cycle)
 	}
 	writeLog(rec)
 	return rec
