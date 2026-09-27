@@ -28,31 +28,40 @@ const (
 )
 
 const (
-	ReasonDataInsufficient = "DATA_INSUFFICIENT"
-	ReasonCapacityUnstable = "CAPACITY_UNSTABLE"
-	ReasonCooldown         = "COOLDOWN"
-	ReasonSustainedHigh    = "SUSTAINED_HIGH"
-	ReasonSaturatedAtMax   = "SATURATED_AT_MAX"
-	ReasonSustainedLow     = "SUSTAINED_LOW"
-	ReasonAtMin            = "AT_MIN_CAPACITY"
-	ReasonUnsafeToReduce   = "UNSAFE_TO_REDUCE"
-	ReasonWithinBand       = "WITHIN_BAND"
+	ReasonDataInsufficient  = "DATA_INSUFFICIENT"
+	ReasonCapacityUnstable  = "CAPACITY_UNSTABLE"
+	ReasonCooldown          = "COOLDOWN"
+	ReasonSustainedHigh     = "SUSTAINED_HIGH"
+	ReasonSaturatedAtMax    = "SATURATED_AT_MAX"
+	ReasonSustainedLow      = "SUSTAINED_LOW"
+	ReasonAtMin             = "AT_MIN_CAPACITY"
+	ReasonUnsafeToReduce    = "UNSAFE_TO_REDUCE"
+	ReasonWithinBand        = "WITHIN_BAND"
+	ReasonHighErrorRate     = "HIGH_ERROR_RATE"
+	ReasonUnhealthyEstablished = "UNHEALTHY_ESTABLISHED"
+	// Pre-escalado proactivo: la pendiente de RPS supera el umbral configurado
+	// antes de que CPU o errores confirmen la saturacion.
+	ReasonProactiveRPSTrend = "PROACTIVE_RPS_TREND"
 )
 
-// Nombres de las metricas de CloudWatch que el controlador observa.
+// Nombres de las metricas de CloudWatch que el controlador observa
 const (
-	MetricCPU        = "cpu_utilization"
-	MetricLatencyP90 = "target_response_time_p90"
-	MetricRPT        = "request_count_per_target"
-	MetricHTTP5xx    = "http_5xx_count" // HTTPCode_Target_5XX_Count del ALB (Sum por periodo)
+	MetricCPU        = "cpu_utilization"         // CPUUtilization Average del ASG
+	MetricCPUMax     = "cpu_utilization_max"      // CPUUtilization Maximum del ASG (detecta instancias calientes)
+	MetricLatencyP90 = "target_response_time_p90" // TargetResponseTime p90 del ALB
+	MetricRPT        = "request_count_per_target" // RequestCountPerTarget Sum del ALB
+
+	// Errores 5xx separados por origen
+	MetricELB5xx    = "http_5xx_elb_count"    // HTTPCode_ELB_5XX_Count    Sum del ALB
+	MetricTarget5xx = "http_5xx_target_count" // HTTPCode_Target_5XX_Count Sum del ALB
+
+	// la guarda HIGH_ERROR_RATE suma ambas
+	MetricHTTP5xx = MetricELB5xx
+
+	// Metricas de conexiones (diagnostico, no disparan escala)
+	MetricConnActive = "active_connection_count"       // ActiveConnectionCount Sum del ALB
+	MetricConnErr    = "target_connection_error_count" // TargetConnectionErrorCount Sum del ALB
 )
-
-// es el codigo de razon cuando los errores 5xx fuerzan un scale-up.
-const ReasonHighErrorRate = "HIGH_ERROR_RATE"
-
-// es el codigo de razon cuando instancias ya establecidas (sin pending/terminating) 
-// fallan el health check y se fuerza un scale-up
-const ReasonUnhealthyEstablished = "UNHEALTHY_ESTABLISHED"
 
 // Estructuras de datos
 
@@ -156,7 +165,10 @@ type Params struct {
 	MetricFreshnessSeconds    int     `yaml:"metric_freshness_seconds"     json:"metric_freshness_seconds"`
 	ExpectedPublishLagSeconds int     `yaml:"expected_publish_lag_seconds" json:"expected_publish_lag_seconds"`
 	ReduceMaxP90Seconds       float64 `yaml:"reduce_max_p90_seconds"       json:"reduce_max_p90_seconds"`
-	ErrorRateScaleUpPct float64 `yaml:"error_rate_scale_up_pct" json:"error_rate_scale_up_pct"`
+	ErrorRateScaleUpPct       float64 `yaml:"error_rate_scale_up_pct"      json:"error_rate_scale_up_pct"`
+
+	// RPSSlopeThreshold es la pendiente minima de RequestCountPerTarget que dispara un pre-escalado proactivo
+	RPSSlopeThreshold float64 `yaml:"rps_slope_threshold" json:"rps_slope_threshold"`
 }
 
 func (p Params) LoopInterval() time.Duration { return time.Duration(p.LoopIntervalSeconds) * time.Second }
@@ -168,6 +180,7 @@ type Config struct {
 	AWS          AWSConfig `yaml:"aws"`
 	Params       Params    `yaml:"params"`
 	DecisionLog  string    `yaml:"decision_log_path"`
+	StatePath    string    `yaml:"state_path"`
 	ExperimentID string    `yaml:"experiment_id"`
 }
 
@@ -204,6 +217,8 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("k_down (%d) debe ser mayor que k_up (%d): bajar exige mas evidencia", p.KDown, p.KUp)
 	case p.KDown > p.NSamples:
 		return fmt.Errorf("k_down (%d) no puede exceder n_samples (%d)", p.KDown, p.NSamples)
+	case p.RPSSlopeThreshold < 0:
+		return fmt.Errorf("rps_slope_threshold debe ser >= 0 (0 = desactivado)")
 	}
 
 	// Anti-oscilacion
