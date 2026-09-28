@@ -137,12 +137,14 @@ type Record struct {
 
 // Configuracion
 type AWSConfig struct {
-	Region           string `yaml:"region"`
-	AutoScalingGroup string `yaml:"auto_scaling_group"`
-	TargetGroupARN   string `yaml:"target_group_arn"`
-	LoadBalancerDim  string `yaml:"load_balancer_dimension"`
-	TargetGroupDim   string `yaml:"target_group_dimension"`
-	APIMaxAttempts   int    `yaml:"api_max_attempts"`
+	Region               string `yaml:"region"`
+	AutoScalingGroup     string `yaml:"auto_scaling_group"`
+	TargetGroupARN       string `yaml:"target_group_arn"`
+	LoadBalancerDim      string `yaml:"load_balancer_dimension"`
+	TargetGroupDim       string `yaml:"target_group_dimension"`
+	APIMaxAttempts       int    `yaml:"api_max_attempts"`
+	EnableLeaderElection bool   `yaml:"enable_leader_election"`
+	DynamoDBLockTable    string `yaml:"dynamodb_lock_table"`
 }
 
 type Params struct {

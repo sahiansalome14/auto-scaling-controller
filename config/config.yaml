@@ -10,6 +10,8 @@ aws:
   # Sufijo del Target Group (esta al final del ARN del TG)
   target_group_dimension: "targetgroup/app-tg/0000000000000000"
   api_max_attempts: 3            # reintentos del SDK ante fallos de AWS
+  enable_leader_election: true   # activa modo Activo-Pasivo (Alta Disponibilidad)
+  dynamodb_lock_table: "controller-leader-lock"
 
 # Rutas de persistencia del estado y registro de decisiones
 state_path: /var/lib/autoscaling-controller/state.json

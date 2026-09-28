@@ -111,11 +111,54 @@ El script se encargará de compilar cruzado el código en Go para Linux, subirlo
 
 ### 5.4 Creación de la AMI del Controlador
 
+Existen dos variantes del script de horneado según tu necesidad:
+
+| Script | Comportamiento | Cuándo usarlo |
+|---|---|---|
+| `scripts/bake_ami.sh` | Hornea solo el **binario** y el servicio `systemd`. Arranca en modo `-dry-run` (no actúa). Requiere ejecutar `deploy.sh` para activar en producción. | Desarrollo y pruebas. |
+| `scripts/bake_ami_2.sh` | Hornea el **binario + `config/config.yaml`** y arranca en modo producción real. No necesita `deploy.sh`. | Producción. |
+
 **Uso (ejecutar desde tu máquina local con AWS CLI configurado):**
 ```bash
 # AMI de producción (incluye config.yaml con ARNs reales):
-./scripts/bake_ami.sh <tu_key_name> <sg-id> <subnet-id> [LabInstanceProfile]
+./scripts/bake_ami_2.sh <tu_key_name> <sg-id> <subnet-id> [LabInstanceProfile]
 ```
 
 El script lanzará una instancia EC2 temporal, instalará el binario y la configuración, creará la AMI con `aws ec2 create-image`, esperará a que esté disponible, y al finalizar imprimirá el `ami-id`. Al lanzar una instancia con esa AMI, el controlador arrancará gobernando la infraestructura al instante sin ningún paso adicional.
+
+---
+
+## 6. Configuración de Alta Disponibilidad (Leader Election con DynamoDB)
+
+Para eliminar el **Punto Único de Fallo (SPOF)** del controlador centralizado, se puede activar el esquema Activo-Pasivo mediante **Amazon DynamoDB**.
+
+### 6.1 Crear la Tabla de Lock en DynamoDB (Consola Web)
+1. Ve a **DynamoDB -> Tables** y haz clic en **Create table**.
+2. **Table name:** `controller-leader-lock`.
+3. **Partition key:** `LockID` (String).
+4. **Table class:** DynamoDB Standard.
+5. **Capacity mode:** `On-demand` (Pay-per-request).
+6. Haz clic en **Create table**.
+
+### 6.2 Verificar Permisos IAM del Controlador
+Asegúrate de que la instancia EC2 del controlador utilice un IAM Instance Profile (ej. `LabInstanceProfile`) que tenga los siguientes permisos sobre DynamoDB:
+* `dynamodb:PutItem`
+* `dynamodb:GetItem`
+
+### 6.3 Habilitar Alta Disponibilidad en `config.yaml`
+En el archivo `config/config.yaml`, verifica que estén presentes los siguientes valores en el bloque `aws:`:
+
+```yaml
+aws:
+  enable_leader_election: true
+  dynamodb_lock_table: "controller-leader-lock"
+```
+
+### 6.4 Desplegar Múltiples Controladores (Activo-Pasivo)
+1. Lanza **dos instancias EC2** del controlador (ej. `controller-primary` en `us-east-1a` y `controller-secondary` en `us-east-1b`).
+2. Ambas instancias ejecutarán el mismo binario Go.
+3. En la consola de logs notarás:
+   * **Instancia A (Líder):** `controlador iniciado ...` y ejecutará los ciclos de control `runCycle`.
+   * **Instancia B (Follower):** `[STANDBY] Esta instancia no es el Lider. Omite ciclo de control.`
+4. Si la **Instancia A** sufre una caída o interrupción de red, la **Instancia B** tomará automáticamente el liderazgo en menos de 15 segundos sin interrupción del servicio.
 

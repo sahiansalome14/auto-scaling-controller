@@ -2,7 +2,7 @@
 
 // Flags:
 //	-dry-run  observa, decide y registra,no modifica la infra
-//	-once     ejecuta un solo ciclo y termina 
+//	-once     ejecuta un solo ciclo y termina
 
 package main
 
@@ -134,9 +134,32 @@ func main() {
 		fmt.Printf("estado persistido en: %s\n", cfg.StatePath)
 	}
 
+	var elector *LeaderElector
+	if cfg.AWS.EnableLeaderElection {
+		e, err := NewLeaderElector(ctx, cfg.AWS.Region, cfg.AWS.DynamoDBLockTable, 15*time.Second)
+		if err != nil {
+			log.Fatalf("inicializando eleccion de lider: %v", err)
+		}
+		elector = e
+		fmt.Printf("Alta Disponibilidad activada (Leader Election via DynamoDB: %s)\n", cfg.AWS.DynamoDBLockTable)
+	}
+
 	run := func() {
 		cctx, ccancel := context.WithTimeout(ctx, p.LoopInterval())
 		defer ccancel()
+
+		if elector != nil {
+			isLeader, err := elector.TryAcquireOrRenew(cctx)
+			if err != nil {
+				log.Printf("error verificando liderazgo: %v (asumiendo modo STANDBY)", err)
+				return
+			}
+			if !isLeader {
+				log.Printf("%s  [STANDBY] Esta instancia no es el Lider. Omite ciclo de control.", time.Now().UTC().Format(time.RFC3339))
+				return
+			}
+		}
+
 		r := runCycle(cctx, cfg, provider, *dry)
 		fmt.Printf("%s  ciclo=%d  %s  capacidad=%d  calidad=%s  resultado=%s  %s\n",
 			r.Timestamp.Format(time.RFC3339), r.Cycle, r.Decision,

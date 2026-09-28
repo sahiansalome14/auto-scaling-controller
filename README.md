@@ -127,3 +127,13 @@ La inteligencia del controlador reside en `cmd/controller/policy.go`. Las decisi
 | 9 | Ninguna de las anteriores | `MAINTAIN (WITHIN_BAND)` |
 
 *Nota:* Reducir es seguro si la proyección matemática $\overline{CPU}_{ventana} \times \frac{Desired}{target}$ no alcanza `u_high` (donde `target = Desired - step`), y si la latencia media de la ventana no supera `reduce_max_p90_seconds`. Esto previene un ciclo de *thrashing* (subir y bajar repetidamente).
+
+
+
+### Alta Disponibilidad y Resiliencia 
+
+Para eliminar el Punto Único de Fallo (*Single Point of Failure - SPOF*) del controlador centralizado, se implementó un mecanismo de **Elección de Líder (Leader Election)** basado en **Amazon DynamoDB** mediante escrituras condicionales atómicas (`PutItem` con `ConditionExpression`). Este esquema permite desplegar múltiples instancias del controlador en distintas Zonas de Disponibilidad (Multi-AZ) compartiendo una tabla de candado (*lease*) con tiempo de expiración (TTL). La instancia que adquiere el contrato asume el rol de **Líder** y ejecuta en exclusiva el bucle de control (`Observe -> Decide -> Actuate`), mientras que las instancias secundarias permanecen en modo **Standby / Follower** verificando pasivamente el contrato. Si el Líder sufre una interrupción o pérdida de conectividad superior a 15 segundos, la concesión expira y una de las instancias secundarias asume el liderazgo automáticamente (*Failover* transparente), garantizando la continuidad de la gobernanza de elasticidad sin riesgo de ejecución de comandos duplicados ni carreras de datos.
+
+![alt text](image-1.png)
+![alt text](image.png)
+
