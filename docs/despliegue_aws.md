@@ -6,8 +6,9 @@ Esta guía detalla los pasos exactos para desplegar la infraestructura completa 
 
 ## 1. Configuración de Red (VPC y Subredes)
 Asegúrate de estar trabajando en una región específica (por ejemplo, `us-east-1`).
-1. Utiliza la VPC por defecto o crea una nueva.
-2. Identifica al menos **dos subredes públicas** en diferentes Zonas de Disponibilidad (ej. `us-east-1a` y `us-east-1b`).
+1. Utiliza tu VPC con la siguiente estructura de subredes:
+   - **Subredes Públicas (Multi-AZ):** Al menos dos subredes públicas en distintas Zonas de Disponibilidad (`us-east-1a` y `us-east-1b`) para el **Application Load Balancer (ALB)**.
+   - **Subredes Privadas (Multi-AZ):** Al menos dos subredes privadas en distintas Zonas de Disponibilidad (`us-east-1a` y `us-east-1b`) para las instancias del **Auto Scaling Group (ASG)**.
 
 ---
 
@@ -32,7 +33,7 @@ Asegúrate de estar trabajando en una región específica (por ejemplo, `us-east
 2. Selecciona **Application Load Balancer**.
 3. **Load balancer name:** `app-alb`.
 4. **Scheme:** `Internet-facing` | **IP address type:** `IPv4`.
-5. **Network mapping:** Selecciona tu VPC y las dos subredes públicas identificadas en el paso 1.
+5. **Network mapping:** Selecciona tu VPC y las **dos subredes públicas** (`us-east-1a` y `us-east-1b`) identificadas en el paso 1.
 6. **Security groups:** Crea o selecciona un Security Group que permita tráfico HTTP (puerto 80) desde `0.0.0.0/0`.
 7. **Listeners and routing:**
    - Protocol: `HTTP`, Port: `80`
@@ -50,7 +51,8 @@ Asegúrate de estar trabajando en una región específica (por ejemplo, `us-east
 4. **Instance type:** `t3.micro`.
 5. **Key pair:** Selecciona tu par de claves SSH (ej. `vockey`).
 6. **Network settings:**
-   - **Security groups:** Crea o selecciona un Security Group que permita tráfico HTTP (puerto 80) desde el Security Group del ALB creado en el paso 2.2.
+   - **Security groups:** Crea o selecciona un Security Group que permita tráfico HTTP (puerto 80) únicamente desde el Security Group del ALB creado en el paso 2.2.
+   - *(Nota: No selecciones una subred específica aquí; la distribución Multi-AZ por subredes privadas se configura a nivel del Auto Scaling Group).*
 7. **Advanced details:**
    - **Detailed CloudWatch monitoring:** Selecciona **Enable** (Crucial para tener métricas de 1 minuto).
    - **User data:** El user-data de la aplicación está embebido directamente en el script `scripts/bake_ami.sh` (sección `BOOTSTRAP`). Copia el bloque entre `<<'BOOTSTRAP'` y `BOOTSTRAP` de ese archivo.
@@ -65,7 +67,7 @@ El ASG funcionará puramente como un actuador controlado por nuestra aplicación
 1. Ve a **EC2 -> Auto Scaling Groups** y haz clic en **Create Auto Scaling group**.
 2. **Name:** `app-asg`.
 3. **Launch template:** Selecciona `app-lt` y haz clic en Next.
-4. **Network:** Selecciona tu VPC y las subredes públicas. Next.
+4. **Network:** Selecciona tu VPC y las **dos subredes privadas** (ubicadas en `us-east-1a` y `us-east-1b`). Next.
 5. **Load balancing:** 
    - Selecciona **Attach to an existing load balancer**.
    - Choose from your load balancer target groups: Selecciona `app-tg`.
