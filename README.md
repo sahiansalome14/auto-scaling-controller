@@ -91,7 +91,6 @@ Una vez configurada la infraestructura base y obtenidos los IDs reales (ARN del 
 ```
 Esta AMI contiene el binario compilado y el servicio `systemd` configurado. Al lanzar la instancia EC2 final del controlador desde la consola web, simplemente selecciona la AMI generada.
 
-*Nota para desarrollo:* Si estás haciendo cambios frecuentes al código, puedes usar `./scripts/deploy.sh ec2-user@<IP> ~/.ssh/tu-clave.pem` para subir el binario en caliente sin tener que hornear una nueva AMI cada vez.
 
 ### Paso 3: Correr un Experimento
 El script automatizado arranca el loadgen (k6), orquesta el ciclo de vida del controlador, y colecta las gráficas de resultados.
