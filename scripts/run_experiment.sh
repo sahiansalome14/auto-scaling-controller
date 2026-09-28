@@ -154,4 +154,8 @@ cat > "${OUT}/manifest.json" <<JSON
  "asg":"${ASG}","region":"${REGION}","alb":"${ALB}",
  "commit":"$(git rev-parse --short HEAD 2>/dev/null || echo nogit)"}
 JSON
+
+echo "== generando graficas =="
+python3 scripts/plot_results.py "${OUT}" || true
+
 echo "evidencia en ${OUT}"
