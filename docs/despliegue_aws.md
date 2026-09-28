@@ -111,13 +111,6 @@ El script se encargará de compilar cruzado el código en Go para Linux, subirlo
 
 ### 5.4 Creación de la AMI del Controlador
 
-Existen dos variantes del script de horneado según tu necesidad:
-
-| Script | Comportamiento | Cuándo usarlo |
-|---|---|---|
-| `scripts/bake_ami.sh` | Hornea solo el **binario** y el servicio `systemd`. Arranca en modo `-dry-run` (no actúa). Requiere ejecutar `deploy.sh` para activar en producción. | Desarrollo y pruebas. |
-| `scripts/bake_ami_2.sh` | Hornea el **binario + `config/config.yaml`** y arranca en modo producción real. No necesita `deploy.sh`. | Producción. |
-
 **Uso (ejecutar desde tu máquina local con AWS CLI configurado):**
 ```bash
 # AMI de producción (incluye config.yaml con ARNs reales):
